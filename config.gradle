@@ -1,0 +1,6 @@
+ext {
+    buildInfo = [
+            compileSdkVersion: 31,
+            minSdkVersion: 26,
+    ]
+}

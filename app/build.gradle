@@ -1,0 +1,111 @@
+// app config
+apply plugin: 'com.android.application'
+
+def camera_folder = 'Camera2'
+
+def srcFolder = [
+        camera_folder + '/src',
+        camera_folder + '/src_pd',
+        camera_folder + '/src_pd_gcam',
+        camera_folder + '/config/src',
+]
+
+def resFolder = [
+        camera_folder + '/res',
+        camera_folder + '/res_p',
+]
+
+def buildInfo = rootProject.ext.buildInfo
+
+android {
+    compileSdkVersion buildInfo.compileSdkVersion
+    defaultConfig {
+        applicationId "com.baby518.camera2"
+        minSdkVersion buildInfo.minSdkVersion
+        targetSdkVersion buildInfo.compileSdkVersion
+        versionCode getCurrentDate() as int
+        versionName "1.0.3." + getCurrentDate()
+    }
+
+    flavorDimensions "dimen"
+    productFlavors {
+        AOSP_ORIG_ {
+            buildConfigField("String", "API_LEVEL", "\"auto\"")
+            buildConfigField("boolean", "USE_CAPTURE_MODULE", "true")
+            buildConfigField("boolean", "USE_FILMSTRIP", "true")
+            buildConfigField("boolean", "SUPPORT_NAVIGATION_BAR", "false")
+            buildConfigField("boolean", "FORCE_PORTRAIT_SCREEN", "false")
+        }
+        PLUS_ {
+            def FORCE_PORTRAIT_SCREEN = true
+            buildConfigField("String", "API_LEVEL", "\"api2\"")
+            buildConfigField("boolean", "USE_CAPTURE_MODULE", "false")
+            buildConfigField("boolean", "USE_FILMSTRIP", "true")
+            buildConfigField("boolean", "SUPPORT_NAVIGATION_BAR", "true")
+            buildConfigField("boolean", "FORCE_PORTRAIT_SCREEN", "${FORCE_PORTRAIT_SCREEN}")
+            manifestPlaceholders = [SCREEN_ORIENTATION: FORCE_PORTRAIT_SCREEN ? 'portrait' : 'unspecified']
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'Camera2/AndroidManifest.xml'
+            def assetsFolder = [camera_folder + '/assets']
+            def libsFolder = [camera_folder + '/libs']
+
+            java.srcDirs = srcFolder
+            resources.srcDirs = srcFolder
+            aidl.srcDirs = srcFolder
+            renderscript.srcDirs = srcFolder
+            res.srcDirs = resFolder
+            assets.srcDirs = assetsFolder
+//            jni.srcDirs = ['jni']
+            jniLibs.srcDirs = libsFolder
+        }
+
+        PLUS_ {
+            manifest.srcFile 'Camera2/src_plus/AndroidManifest.xml'
+            java.srcDirs = [camera_folder + '/src_plus']
+            // res_plus contain new resources, res_overlay contain overlay resources.
+            res.srcDirs = [camera_folder + '/res_plus'] + [camera_folder + '/res_overlay']
+        }
+
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    if (buildInfo.compileSdkVersion >= 23) {
+        useLibrary 'org.apache.http.legacy'
+    }
+}
+
+dependencies {
+    api fileTree(include: ['*.jar'], dir: 'libs')
+    api project(':framework_ex')
+    compileOnly project(':legacy')
+//    compileOnly files(getLayoutLibPath(android))
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'com.google.guava:guava:31.1-android'
+    api 'com.github.bumptech.glide:glide:3.8.0'
+    implementation 'com.adobe.xmp:xmpcore:5.1.2'
+    implementation "androidx.legacy:legacy-support-v4:1.0.0"
+    implementation "androidx.legacy:legacy-support-v13:1.0.0"
+    implementation "androidx.core:core:1.7.0"
+}
+
+def static getCurrentDate() {
+    return new Date().format('yyyyMMddHH')
+}
+
+// must called after "android" definition
+def static getLayoutLibPath(Object android) {
+    def rootDir = "${android.getSdkDirectory().getAbsolutePath()}" + "/platforms/" + android.compileSdkVersion + "/data/layoutlib.jar"
+    Console.println(rootDir)
+    return rootDir
+}
